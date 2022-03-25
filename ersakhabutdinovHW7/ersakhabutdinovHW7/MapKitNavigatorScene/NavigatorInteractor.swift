@@ -8,22 +8,22 @@
 import Foundation
 import MapKit
 
-protocol INavigatorInteractor {
-    
+protocol INavigatorInteractor: AnyObject {
+    func pathQuery(view: NavigatorView)
 }
 
 class NavigatorInteractor: INavigatorInteractor {
     
-    let view: NavigatorView
+    let presenter: INavigatorPresenter
     
     var coordinates: [CLLocationCoordinate2D] = []
     
-    init(view: NavigatorView) {
-        self.view = view
-       // self.view.mapView.delegate = view
+    init(presenter: INavigatorPresenter) {
+        self.presenter = presenter
     }
     
-    func pathQuery() {
+    func pathQuery(view: NavigatorView) {
+        //exit(0)
         guard
             let first = view.startLocation.text,
             let second = view.endLocation.text,
@@ -43,21 +43,30 @@ class NavigatorInteractor: INavigatorInteractor {
             group.leave()
         })
         
+        group.enter()
+        getCoordinateFrom(address: second, completion: { [weak
+        self] coords, _ in
+            if let coords = coords {
+                self?.coordinates.append(coords)
+            }
+            group.leave()
+        })
+        
         group.notify(queue: .main) {
             DispatchQueue.main.async { [weak self] in
-                self?.buildPath()
+                self?.buildPath(view: view)
             }
         }
     }
     
-    private func buildPath() {
+    private func buildPath(view: NavigatorView) {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: coordinates[0], addressDictionary: nil))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: coordinates[1], addressDictionary: nil))
         request.requestsAlternateRoutes = false
         let directions = MKDirections(request: request)
         
-        directions.calculate { [unowned self] response, error in
+        directions.calculate { [unowned view] response, error in
             guard let unwrappedResponse = response else { return }
 
             for route in unwrappedResponse.routes {
@@ -65,12 +74,6 @@ class NavigatorInteractor: INavigatorInteractor {
                 view.mapView.setVisibleMapRect(route.polyline.boundingMapRect, animated: true)
             }
         }
-    }
-    
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        let renderer = MKPolylineRenderer(polyline: overlay as! MKPolyline)
-        renderer.strokeColor = UIColor.blue
-        return renderer
     }
     
     private func getCoordinateFrom(address: String, completion:

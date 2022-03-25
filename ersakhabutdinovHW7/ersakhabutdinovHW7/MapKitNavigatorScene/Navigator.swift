@@ -17,7 +17,7 @@ class Navigator {
     init() {
         presenter = NavigatorPresenter()
         view = NavigatorView(presenter: presenter)
-        interactor = NavigatorInteractor(view: view)
-        presenter.set(view: view)
+        interactor = NavigatorInteractor(presenter: presenter)
+        presenter.set(view: view, interactor: interactor)
     }
 }

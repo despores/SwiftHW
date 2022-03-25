@@ -13,7 +13,6 @@ class NavigatorView: UIViewController {
 
     private let presenter: INavigatorPresenter
     
-    
     let mapView: MKMapView = {
         let mapView = MKMapView()
         mapView.layer.masksToBounds = true

@@ -8,7 +8,7 @@
 import UIKit
 
 protocol INavigatorPresenter {
-    func set(view: NavigatorView)
+    func set(view: NavigatorView, interactor: INavigatorInteractor)
     func goButtonWasPressed()
     func clearButtonWasPressed()
 }
@@ -16,14 +16,19 @@ protocol INavigatorPresenter {
 class NavigatorPresenter: INavigatorPresenter {
     
     weak var view: NavigatorView?
+    var interactor: INavigatorInteractor?
     
-    func set(view: NavigatorView) {
+    func set(view: NavigatorView, interactor: INavigatorInteractor) {
         self.view = view
+        self.interactor = interactor
     }
     
-    @objc
     func goButtonWasPressed() {
-        
+        guard let interactor = interactor else {
+            return
+        }
+
+        interactor.pathQuery(view: view!)
     }
     
     func clearButtonWasPressed() {
