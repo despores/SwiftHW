@@ -30,7 +30,7 @@ DerivedData/
 /*.gcno
 
 ## Pods folders
-Pods
+
 
 ### Xcode Patch ###
 *.xcodeproj/*
