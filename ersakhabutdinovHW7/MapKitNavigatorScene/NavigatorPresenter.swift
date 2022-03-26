@@ -1,16 +1,10 @@
-//
-//  NavigatorPresenter.swift
-//  ersakhabutdinovHW7
-//
-//  Created by Эрнест Сахабутдинов on 24.03.2022.
-//
-
 import UIKit
 
 protocol INavigatorPresenter {
     func set(view: NavigatorView, interactor: INavigatorInteractor)
     func goButtonWasPressed()
     func clearButtonWasPressed()
+    func zoomButtonWasPressed(zoom: Float)
 }
 
 class NavigatorPresenter: INavigatorPresenter {
@@ -32,10 +26,20 @@ class NavigatorPresenter: INavigatorPresenter {
     }
     
     func clearButtonWasPressed() {
+        guard
+            let view = view,
+            let interactor = interactor else {
+            return
+        }
+        interactor.clearMap(view: view)
+        view.changeTextAndButtonsState()
+    }
+    
+    func zoomButtonWasPressed(zoom: Float) {
         guard let view = view else {
             return
         }
-        view.changeTextAndButtonsState()
+        view.changeZoom(zoom: zoom)
     }
     
 }

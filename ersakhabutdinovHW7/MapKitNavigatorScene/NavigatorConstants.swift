@@ -1,10 +1,3 @@
-//
-//  NavigatorConstants.swift
-//  ersakhabutdinovHW7
-//
-//  Created by Эрнест Сахабутдинов on 24.03.2022.
-//
-
 import UIKit
 
 class NavigatorValues {
@@ -12,4 +5,5 @@ class NavigatorValues {
     static let leadingConstraints: CGFloat = 24.0
     static let trailingConstraints: CGFloat = -24.0
     static let bottomConstraints: CGFloat = -60.0
+    static let topConstraints: CGFloat = 120
 }

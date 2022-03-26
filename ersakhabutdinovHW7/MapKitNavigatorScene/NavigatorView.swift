@@ -1,29 +1,23 @@
-//
-//  ViewController.swift
-//  ersakhabutdinovHW7
-//
-//  Created by Эрнест Сахабутдинов on 24.03.2022.
-//
-
 import UIKit
 import CoreLocation
-import MapKit
+import YandexMapsMobile
 
 class NavigatorView: UIViewController {
 
     private let presenter: INavigatorPresenter
     
-    let mapView: MKMapView = {
-        let mapView = MKMapView()
+    private var cameraPosition = YMKCameraPosition()
+    private var currentZoom: Float = 0
+    var trafficLayer: YMKTrafficLayer!
+    
+    var shortestRoute: String?
+    
+    let mapView: YMKMapView = {
+        let mapView = YMKMapView()
         mapView.layer.masksToBounds = true
         mapView.layer.cornerRadius = 5
         mapView.clipsToBounds = false
         mapView.translatesAutoresizingMaskIntoConstraints = false
-        mapView.showsScale = true
-        mapView.showsCompass = true
-        mapView.showsTraffic = true
-        mapView.showsBuildings = true
-        mapView.showsUserLocation = true
         return mapView
     }()
     
@@ -65,16 +59,27 @@ class NavigatorView: UIViewController {
         return control
     }()
     
+    let distanceText: UITextView = {
+        let text = UITextView()
+        text.activate(anchors: [.height(NavigatorValues.buttonHeight)])
+        text.textColor = .black
+        text.font = UIFont.systemFont(ofSize: 15)
+        text.backgroundColor = .clear
+        text.text = "help"
+        text.alpha = 0
+        return text
+    }()
+    
     lazy var textStackView: UIStackView = {
         let textStack = UIStackView()
         textStack.axis = .vertical
-        view.addSubview(textStack)
         textStack.spacing = 10
         [startLocation, endLocation].forEach { textField in
             textField.setHeight(to: NavigatorValues.buttonHeight)
             textField.delegate = self
             textStack.addArrangedSubview(textField)
         }
+        textStack.addArrangedSubview(distanceText)
         return textStack
     }()
     
@@ -96,6 +101,28 @@ class NavigatorView: UIViewController {
         return button
     }()
     
+    let zoomInButton: CustomButton = {
+        let button = CustomButton(text: "+", color: .gray, frame: .zero)
+        button.activate(anchors: [.height(NavigatorValues.buttonHeight)])
+        button.addTarget(self, action: #selector(zoomInButtonPressed), for: .touchUpInside)
+        return button
+    }()
+    
+    let zoomOutButton: CustomButton = {
+        let button = CustomButton(text: "-", color: .gray, frame: .zero)
+        button.activate(anchors: [.height(NavigatorValues.buttonHeight)])
+        button.addTarget(self, action: #selector(zoomOutButtonPressed), for: .touchUpInside)
+        return button
+    }()
+    
+    lazy var zoomStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [zoomInButton, zoomOutButton])
+        stack.axis = .vertical
+        stack.spacing = 15
+        stack.distribution = .fillEqually
+        return stack
+    }()
+    
     lazy var buttonStackView: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [goButton, clearButton])
         stack.axis = .horizontal
@@ -109,8 +136,7 @@ class NavigatorView: UIViewController {
         
         self.hideKeyboardWhenTappedAround()
         
-        mapView.delegate = self
-        
+        //mapView.delegate = self
         configureUI()
     }
     
@@ -122,11 +148,18 @@ class NavigatorView: UIViewController {
     func configureUI() {
         view.addSubview(mapView)
         view.addSubview(textStackView)
+        view.addSubview(textStackView)
         view.addSubview(buttonStackView, anchors: [.bottom(NavigatorValues.bottomConstraints),
-                                                                  .leading(NavigatorValues.leadingConstraints),
-                                                                  .trailing(NavigatorValues.trailingConstraints)])
+                                                   .leading(NavigatorValues.leadingConstraints),
+                                                   .trailing(NavigatorValues.trailingConstraints)])
+        view.addSubview(zoomStackView, anchors: [.trailing(NavigatorValues.trailingConstraints),
+                                                 .centerY(0)])
         mapView.pin(to: view)
         textStackView.pin(to: view, [.top: 50, .left: 10, .right: 10])
+        trafficLayer = YMKMapKit.sharedInstance().createTrafficLayer(with: mapView.mapWindow)
+        trafficLayer.addTrafficListener(withTrafficListener: self)
+        mapView.mapWindow.map.addCameraListener(with: self)
+        trafficLayer.setTrafficVisibleWithOn(true)
     }
     
     func changeTextAndButtonsState() {
@@ -136,6 +169,12 @@ class NavigatorView: UIViewController {
         goButton.isEnabled = false
         clearButton.setTitleColor(.gray, for: .disabled)
         clearButton.isEnabled = false
+    }
+    
+    func changeZoom(zoom: Float) {
+        currentZoom += zoom
+        mapView.mapWindow.map.move(with: YMKCameraPosition(target: cameraPosition.target,
+                                                        zoom: currentZoom, azimuth: 0, tilt: 0))
     }
     
     required init?(coder: NSCoder) {
@@ -158,13 +197,37 @@ extension NavigatorView: UITextFieldDelegate {
     }
 }
 
-extension NavigatorView: MKMapViewDelegate {
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        let renderer = MKPolylineRenderer(polyline: overlay as! MKPolyline)
-        renderer.strokeColor = UIColor.blue
-        return renderer
+extension NavigatorView: YMKMapCameraListener {
+    func onCameraPositionChanged(with map: YMKMap, cameraPosition: YMKCameraPosition, cameraUpdateReason: YMKCameraUpdateReason, finished: Bool) {
+        self.cameraPosition = cameraPosition
+        currentZoom = cameraPosition.zoom
     }
 }
+
+extension NavigatorView: YMKTrafficDelegate {
+    func onTrafficLoading() {
+        
+    }
+    
+    func onTrafficExpired() {
+        
+    }
+    
+    func onTrafficChanged(with trafficLevel: YMKTrafficLevel?) {
+        guard trafficLevel != nil else {
+            return
+        }
+    }
+}
+
+//extension NavigatorView: MKMapViewDelegate {
+//    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+//        let renderer = MKPolylineRenderer(polyline: overlay as! MKPolyline)
+//        renderer.strokeColor = UIColor.blue
+//        return renderer
+//    }
+//}
+
 
 extension NavigatorView {
     @objc
@@ -175,5 +238,15 @@ extension NavigatorView {
     @objc
     func goButtonPressed(_ sender: UIButton) {
         presenter.goButtonWasPressed()
+    }
+    
+    @objc
+    func zoomInButtonPressed(_ sender: UIButton) {
+        presenter.zoomButtonWasPressed(zoom: 1)
+    }
+    
+    @objc
+    func zoomOutButtonPressed(_ sender: UIButton) {
+        presenter.zoomButtonWasPressed(zoom: -1)
     }
 }
